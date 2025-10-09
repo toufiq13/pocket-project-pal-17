@@ -6,6 +6,76 @@
 
 @layer base {
   :root {
+    /* Luxury Interior Design Color Palette */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 32 98% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 3.9%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 32 98% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 32 98% 45%;
+    --radius: 0.5rem;
+    
+    /* Luxury gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(32, 98%, 45%), hsl(32, 95%, 55%));
+    --gradient-dark: linear-gradient(135deg, hsl(240, 10%, 10%), hsl(240, 10%, 20%));
+    --gradient-elegant: linear-gradient(180deg, hsl(0, 0%, 98%), hsl(0, 0%, 95%));
+    
+    /* Shadows */
+    --shadow-luxury: 0 20px 60px -10px hsla(32, 98%, 45%, 0.2);
+    --shadow-card: 0 4px 20px hsla(240, 10%, 3.9%, 0.08);
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 32 98% 55%;
+    --primary-foreground: 240 10% 3.9%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 32 98% 55%;
+    --accent-foreground: 240 10% 3.9%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 32 98% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+
+@layer base {
+  :root {
     /* Luxury Color Palette */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
