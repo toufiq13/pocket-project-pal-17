@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, ShoppingCart, Star, ChevronLeft } from "lucide-react";
 import { ProductReviews } from "@/components/ProductReviews";
+import { ProductRecommendations } from "@/components/ProductRecommendations";
 
 interface Product {
   id: string;
@@ -261,6 +262,8 @@ export default function ProductDetail() {
         </div>
 
         <ProductReviews productId={product.id} />
+
+        <ProductRecommendations productId={product.id} title="Complete The Look" />
       </main>
 
       <Footer />

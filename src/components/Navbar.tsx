@@ -23,6 +23,9 @@ export const Navbar = () => {
             <Link to="/products" className="text-sm font-medium hover:text-primary transition-colors">
               Products
             </Link>
+            <Link to="/room-planner" className="text-sm font-medium hover:text-primary transition-colors">
+              Room Planner
+            </Link>
             <Link to="/categories" className="text-sm font-medium hover:text-primary transition-colors">
               Categories
             </Link>
@@ -61,6 +64,9 @@ export const Navbar = () => {
             </Link>
             <Link to="/products" className="block py-2 text-sm font-medium hover:text-primary transition-colors">
               Products
+            </Link>
+            <Link to="/room-planner" className="block py-2 text-sm font-medium hover:text-primary transition-colors">
+              Room Planner
             </Link>
             <Link to="/categories" className="block py-2 text-sm font-medium hover:text-primary transition-colors">
               Categories
