@@ -89,8 +89,8 @@ export function ProductSelector({ onAddItem }: ProductSelectorProps) {
   );
 
   return (
-    <div className="bg-card rounded-lg border border-border p-4">
-      <h3 className="font-semibold mb-4">Add Furniture</h3>
+    <div className="bg-card rounded-lg border border-border p-4 h-full">
+      <h3 className="font-semibold mb-4">Furniture Library</h3>
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -114,7 +114,7 @@ export function ProductSelector({ onAddItem }: ProductSelectorProps) {
             <TabsTrigger value="storage">Storage</TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="h-[500px] mt-4">
+          <ScrollArea className="h-[600px] mt-4">
             <TabsContent value="all" className="mt-0">
               {renderProductList(filteredProducts)}
             </TabsContent>
