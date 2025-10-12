@@ -40,6 +40,13 @@ export function AIChatWidget() {
     setLoading(true);
 
     try {
+      // Get the current session to send auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Please sign in to use the AI assistant");
+      }
+
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: { message: userMessage, conversationHistory: messages },
       });
