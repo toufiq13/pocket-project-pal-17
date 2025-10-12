@@ -4,8 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Sparkles, Shield, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
+import { AIChatWidget } from "@/components/AIChatWidget";
+import { TrendingProducts } from "@/components/TrendingProducts";
+import { ProductRecommendations } from "@/components/ProductRecommendations";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 const Index = () => {
+  const [userId, setUserId] = useState<string | undefined>();
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserId(session?.user?.id);
+    };
+    getUserId();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -78,6 +93,12 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Trending Products */}
+        <TrendingProducts />
+
+        {/* Personalized Recommendations */}
+        <ProductRecommendations userId={userId} title="Recommended for You" />
+
         {/* CTA Section */}
         <section className="py-20 gradient-luxury text-white">
           <div className="container mx-auto px-4 text-center">
@@ -95,6 +116,7 @@ const Index = () => {
       </main>
 
       <Footer />
+      <AIChatWidget />
     </div>
   );
 };

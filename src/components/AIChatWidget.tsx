@@ -48,7 +48,11 @@ export function AIChatWidget() {
       }
 
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: { message: userMessage, conversationHistory: messages },
+        body: { 
+          message: userMessage, 
+          conversationHistory: messages.slice(-10),
+          userId: session.user.id 
+        },
       });
 
       if (error) throw error;

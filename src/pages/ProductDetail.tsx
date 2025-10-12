@@ -27,7 +27,16 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | undefined>();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserId(session?.user?.id);
+    };
+    getUserId();
+  }, []);
 
   useEffect(() => {
     if (slug) {
@@ -263,7 +272,7 @@ export default function ProductDetail() {
 
         <ProductReviews productId={product.id} />
 
-        <ProductRecommendations productId={product.id} title="Complete The Look" />
+        <ProductRecommendations currentProductId={product.id} userId={userId} title="Complete The Look" />
       </main>
 
       <Footer />

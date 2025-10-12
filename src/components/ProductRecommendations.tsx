@@ -8,21 +8,22 @@ interface Product {
   name: string;
   slug: string;
   price: number;
-  images: string[];
-  description: string;
-  category_id: string;
+  images: string[] | null;
+  description: string | null;
 }
 
 interface ProductRecommendationsProps {
-  productId?: string;
+  currentProductId?: string;
+  userId?: string;
   title?: string;
   limit?: number;
 }
 
 export function ProductRecommendations({
-  productId,
+  currentProductId,
+  userId,
   title = "You May Also Like",
-  limit = 4,
+  limit = 6,
 }: ProductRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,40 +31,91 @@ export function ProductRecommendations({
 
   useEffect(() => {
     fetchRecommendations();
-  }, [productId]);
+  }, [currentProductId, userId]);
 
   const fetchRecommendations = async () => {
     try {
-      if (productId) {
+      setLoading(true);
+
+      if (userId) {
+        // Collaborative filtering: Get products based on user's past reviews and wishlist
+        const { data: userReviews } = await supabase
+          .from("reviews")
+          .select("product_id, rating")
+          .eq("user_id", userId)
+          .gte("rating", 4)
+          .limit(5);
+
+        const { data: wishlist } = await supabase
+          .from("wishlist")
+          .select("product_id")
+          .eq("user_id", userId)
+          .limit(5);
+
+        const productIds = [
+          ...(userReviews?.map(r => r.product_id) || []),
+          ...(wishlist?.map(w => w.product_id) || [])
+        ];
+
+        if (productIds.length > 0 && currentProductId) {
+          productIds.push(currentProductId);
+        }
+
+        if (productIds.length > 0) {
+          // Get similar products based on category
+          const { data: relatedProducts } = await supabase
+            .from("products")
+            .select("id, name, price, images, slug, description")
+            .not("id", "in", `(${productIds.join(",")})`)
+            .limit(limit);
+
+          if (relatedProducts && relatedProducts.length > 0) {
+            setRecommendations(relatedProducts);
+            return;
+          }
+        }
+      }
+
+      if (currentProductId) {
+        // Content-based filtering: Get similar products from same category
         const { data: currentProduct } = await supabase
           .from("products")
           .select("category_id")
-          .eq("id", productId)
+          .eq("id", currentProductId)
           .single();
 
-        if (currentProduct) {
-          const { data, error } = await supabase
+        if (currentProduct?.category_id) {
+          const { data: similarProducts } = await supabase
             .from("products")
-            .select("*")
+            .select("id, name, price, images, slug, description")
             .eq("category_id", currentProduct.category_id)
-            .neq("id", productId)
+            .neq("id", currentProductId)
             .limit(limit);
 
-          if (error) throw error;
-          setRecommendations(data || []);
+          if (similarProducts && similarProducts.length > 0) {
+            setRecommendations(similarProducts);
+            return;
+          }
         }
-      } else {
-        const { data, error } = await supabase
-          .from("products")
-          .select("*")
-          .eq("is_featured", true)
-          .limit(limit);
+      }
 
-        if (error) throw error;
-        setRecommendations(data || []);
+      // Fallback: Get featured products
+      const { data: featuredProducts } = await supabase
+        .from("products")
+        .select("id, name, price, images, slug, description")
+        .eq("is_featured", true)
+        .limit(limit);
+
+      if (featuredProducts) {
+        setRecommendations(featuredProducts);
       }
     } catch (error) {
       console.error("Error fetching recommendations:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load recommendations",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -71,14 +123,20 @@ export function ProductRecommendations({
 
   if (loading) {
     return (
-      <div className="py-8">
-        <h2 className="text-2xl font-serif font-bold mb-6">{title}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(limit)].map((_, i) => (
-            <div key={i} className="h-96 bg-muted animate-pulse rounded-lg" />
-          ))}
+      <section className="py-16 px-4">
+        <div className="container">
+          <h2 className="text-3xl font-bold mb-8">{title}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-muted h-64 rounded-lg mb-4"></div>
+                <div className="bg-muted h-4 w-3/4 rounded mb-2"></div>
+                <div className="bg-muted h-4 w-1/2 rounded"></div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -87,13 +145,15 @@ export function ProductRecommendations({
   }
 
   return (
-    <div className="py-8">
-      <h2 className="text-2xl font-serif font-bold mb-6">{title}</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {recommendations.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+    <section className="py-16 px-4 bg-muted/50">
+      <div className="container">
+        <h2 className="text-3xl font-bold mb-8">{title}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {recommendations.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

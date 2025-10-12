@@ -13,7 +13,12 @@ serve(async (req) => {
   }
 
   try {
-    const { message, conversationHistory } = await req.json();
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Authorization header required");
+    }
+
+    const { message, conversationHistory, userId } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -24,9 +29,36 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get user's browsing history and preferences
+    const { data: userOrders } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("user_id", userId)
+      .limit(5);
+
+    const { data: userReviews } = await supabase
+      .from("reviews")
+      .select("product_id, rating")
+      .eq("user_id", userId)
+      .limit(10);
+
+    const { data: wishlist } = await supabase
+      .from("wishlist")
+      .select("product_id")
+      .eq("user_id", userId);
+
+    // Get trending products (most reviewed in last 30 days)
+    const { data: trendingProducts } = await supabase
+      .from("reviews")
+      .select("product_id, products(name, price, category_id)")
+      .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .limit(10);
+
+    // Get featured products
     const { data: products } = await supabase
       .from("products")
-      .select("name, description, price, material, color")
+      .select("name, description, price, material, color, category_id, categories(name)")
+      .eq("is_featured", true)
       .limit(20);
 
     const { data: categories } = await supabase
@@ -37,20 +69,34 @@ serve(async (req) => {
 
 Your role:
 - Help customers find the perfect furniture and decor
-- Provide interior design suggestions and recommendations
-- Answer questions about products, materials, and styles
-- Assist with order inquiries
+- Provide personalized product recommendations based on user preferences
+- Answer product queries with specific price ranges and styles
+- Provide interior design suggestions for different room types
+- Assist with order tracking and support
 - Be knowledgeable, elegant, and helpful
+
+User Context:
+${userOrders?.length ? `- Customer has ${userOrders.length} previous orders` : "- New customer"}
+${userReviews?.length ? `- Has reviewed ${userReviews.length} products` : ""}
+${wishlist?.length ? `- Has ${wishlist.length} items in wishlist` : ""}
 
 Available products: ${JSON.stringify(products)}
 Available categories: ${JSON.stringify(categories)}
+Trending products: ${JSON.stringify(trendingProducts)}
+
+Capabilities:
+1. Product Search: When user asks for products (e.g., "modern sofas under ₹50,000"), suggest specific items from available products
+2. Interior Design: Provide design suggestions for different room types (minimal office, cozy bedroom, etc.)
+3. Order Support: Guide users on order tracking and delivery (note: you don't have access to real-time order data, direct them to their dashboard)
+4. Personalization: Use user's history to provide relevant recommendations
 
 Guidelines:
-- Be concise but helpful
-- Use a warm, professional tone
-- Suggest relevant products when appropriate
-- Ask clarifying questions to better understand customer needs
-- Focus on quality, luxury, and style`;
+- Be specific and reference actual products when possible
+- For price queries, filter products within the budget
+- For style queries (modern, minimal, traditional), match with product descriptions
+- Always maintain a warm, professional, luxury brand tone
+- If you can't find exact matches, suggest similar alternatives
+- For order tracking, direct users to their account dashboard`;
 
     const messages = [
       { role: "system", content: systemPrompt },
@@ -67,10 +113,24 @@ Guidelines:
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages,
-        temperature: 0.7,
-        max_tokens: 500,
+        temperature: 0.8,
+        max_tokens: 800,
       }),
     });
+
+    if (response.status === 429) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (response.status === 402) {
+      return new Response(
+        JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
