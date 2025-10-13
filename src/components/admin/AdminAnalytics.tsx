@@ -26,6 +26,8 @@ interface AnalyticsData {
   topProducts: Array<{ name: string; sales: number }>;
   recentOrders: Array<{ date: string; amount: number }>;
   categoryDistribution: Array<{ name: string; value: number }>;
+  trendingProducts: Array<{ name: string; views: number }>;
+  topCategories: Array<{ name: string; purchases: number }>;
 }
 
 export function AdminAnalytics() {
@@ -38,10 +40,19 @@ export function AdminAnalytics() {
 
   const fetchAnalytics = async () => {
     try {
-      const [ordersData, productsData, usersData] = await Promise.all([
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const [ordersData, productsData, usersData, orderItemsData, categoriesData, interactionsData] = await Promise.all([
         supabase.from("orders").select("total_amount, created_at, status"),
         supabase.from("products").select("id, name, category_id"),
         supabase.from("profiles").select("id"),
+        supabase.from("order_items").select("product_id, quantity, products(name)"),
+        supabase.from("categories").select("id, name"),
+        supabase.from("user_interactions")
+          .select("product_id, interaction_type, products(name)")
+          .gte("created_at", thirtyDaysAgo.toISOString())
+          .eq("interaction_type", "view"),
       ]);
 
       const totalRevenue =
@@ -62,25 +73,80 @@ export function AdminAnalytics() {
             amount: Number(order.total_amount),
           })) || [];
 
+      // Calculate top selling products from order items
+      const productSales: Record<string, { name: string; sales: number }> = {};
+      orderItemsData.data?.forEach((item: any) => {
+        const productName = item.products?.name || "Unknown";
+        if (!productSales[productName]) {
+          productSales[productName] = { name: productName, sales: 0 };
+        }
+        productSales[productName].sales += item.quantity;
+      });
+
+      const topProducts = Object.values(productSales)
+        .sort((a, b) => b.sales - a.sales)
+        .slice(0, 5);
+
+      // Calculate trending products (most views in last 30 days)
+      const productViews: Record<string, { name: string; views: number }> = {};
+      interactionsData.data?.forEach((interaction: any) => {
+        const productName = interaction.products?.name || "Unknown";
+        if (!productViews[productName]) {
+          productViews[productName] = { name: productName, views: 0 };
+        }
+        productViews[productName].views += 1;
+      });
+
+      const trendingProducts = Object.values(productViews)
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 5);
+
+      // Calculate category distribution
+      const categoryCount: Record<string, number> = {};
+      productsData.data?.forEach((product) => {
+        const categoryId = product.category_id || "uncategorized";
+        categoryCount[categoryId] = (categoryCount[categoryId] || 0) + 1;
+      });
+
+      const categoryDistribution = categoriesData.data?.map((cat) => ({
+        name: cat.name,
+        value: categoryCount[cat.id] || 0,
+      })).filter(cat => cat.value > 0) || [];
+
+      // Calculate most purchased categories this month
+      const categoryPurchases: Record<string, { name: string; purchases: number }> = {};
+      await Promise.all(
+        orderItemsData.data?.map(async (item: any) => {
+          const { data: product } = await supabase
+            .from("products")
+            .select("category_id, categories(name)")
+            .eq("id", item.product_id)
+            .single();
+
+          if (product?.categories?.name) {
+            const catName = product.categories.name;
+            if (!categoryPurchases[catName]) {
+              categoryPurchases[catName] = { name: catName, purchases: 0 };
+            }
+            categoryPurchases[catName].purchases += item.quantity;
+          }
+        }) || []
+      );
+
+      const topCategories = Object.values(categoryPurchases)
+        .sort((a, b) => b.purchases - a.purchases)
+        .slice(0, 5);
+
       setData({
         totalRevenue,
         totalOrders: completedOrders,
         totalProducts: productsData.data?.length || 0,
         totalUsers: usersData.data?.length || 0,
-        topProducts: [
-          { name: "Modern Sofa", sales: 45 },
-          { name: "Office Chair", sales: 38 },
-          { name: "Dining Table", sales: 32 },
-          { name: "Bookshelf", sales: 28 },
-          { name: "Coffee Table", sales: 24 },
-        ],
+        topProducts,
         recentOrders,
-        categoryDistribution: [
-          { name: "Furniture", value: 45 },
-          { name: "Decor", value: 30 },
-          { name: "Lighting", value: 15 },
-          { name: "Storage", value: 10 },
-        ],
+        categoryDistribution,
+        trendingProducts,
+        topCategories,
       });
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -197,6 +263,60 @@ export function AdminAnalytics() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              ML Insights: Top 5 Trending Products
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.trendingProducts.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={data.trendingProducts}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="views" fill="#10b981" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-muted-foreground text-center py-12">
+                No trending data available yet
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              ML Insights: Most Purchased Categories (30 Days)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.topCategories.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={data.topCategories}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="purchases" fill="#f59e0b" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-muted-foreground text-center py-12">
+                No purchase data available yet
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
