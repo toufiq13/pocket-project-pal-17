@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Sparkles, Shield, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AIChatWidget } from "@/components/AIChatWidget";
+import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { TrendingProducts } from "@/components/TrendingProducts";
 import { ProductRecommendations } from "@/components/ProductRecommendations";
 import { supabase } from "@/integrations/supabase/client";
@@ -117,6 +118,7 @@ const Index = () => {
 
       <Footer />
       <AIChatWidget />
+      <VoiceAssistant />
     </div>
   );
 };

@@ -208,6 +208,7 @@ export type Database = {
       }
       products: {
         Row: {
+          ar_model_url: string | null
           category_id: string | null
           color: string | null
           created_at: string | null
@@ -215,15 +216,19 @@ export type Database = {
           dimensions: string | null
           id: string
           images: string[] | null
+          iot_compatible: boolean | null
           is_featured: boolean | null
           material: string | null
+          model_3d_url: string | null
           name: string
           price: number
           slug: string
+          smart_features: Json | null
           stock_quantity: number | null
           updated_at: string | null
         }
         Insert: {
+          ar_model_url?: string | null
           category_id?: string | null
           color?: string | null
           created_at?: string | null
@@ -231,15 +236,19 @@ export type Database = {
           dimensions?: string | null
           id?: string
           images?: string[] | null
+          iot_compatible?: boolean | null
           is_featured?: boolean | null
           material?: string | null
+          model_3d_url?: string | null
           name: string
           price: number
           slug: string
+          smart_features?: Json | null
           stock_quantity?: number | null
           updated_at?: string | null
         }
         Update: {
+          ar_model_url?: string | null
           category_id?: string | null
           color?: string | null
           created_at?: string | null
@@ -247,11 +256,14 @@ export type Database = {
           dimensions?: string | null
           id?: string
           images?: string[] | null
+          iot_compatible?: boolean | null
           is_featured?: boolean | null
           material?: string | null
+          model_3d_url?: string | null
           name?: string
           price?: number
           slug?: string
+          smart_features?: Json | null
           stock_quantity?: number | null
           updated_at?: string | null
         }
