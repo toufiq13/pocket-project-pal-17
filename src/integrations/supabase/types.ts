@@ -90,6 +90,36 @@ export type Database = {
           },
         ]
       }
+      chatbot_logs: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          role: Database["public"]["Enums"]["chat_role"]
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          role: Database["public"]["Enums"]["chat_role"]
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          role?: Database["public"]["Enums"]["chat_role"]
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -225,6 +255,7 @@ export type Database = {
           slug: string
           smart_features: Json | null
           stock_quantity: number | null
+          style: string | null
           updated_at: string | null
         }
         Insert: {
@@ -245,6 +276,7 @@ export type Database = {
           slug: string
           smart_features?: Json | null
           stock_quantity?: number | null
+          style?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -265,6 +297,7 @@ export type Database = {
           slug?: string
           smart_features?: Json | null
           stock_quantity?: number | null
+          style?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -279,6 +312,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: Json | null
           avatar_url: string | null
           created_at: string | null
           email: string
@@ -289,6 +323,7 @@ export type Database = {
           user_type: Database["public"]["Enums"]["app_role"] | null
         }
         Insert: {
+          address?: Json | null
           avatar_url?: string | null
           created_at?: string | null
           email: string
@@ -299,6 +334,7 @@ export type Database = {
           user_type?: Database["public"]["Enums"]["app_role"] | null
         }
         Update: {
+          address?: Json | null
           avatar_url?: string | null
           created_at?: string | null
           email?: string
@@ -475,6 +511,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "customer" | "architect" | "company"
+      chat_role: "user" | "assistant" | "system"
       order_status:
         | "pending"
         | "confirmed"
@@ -611,6 +648,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "customer", "architect", "company"],
+      chat_role: ["user", "assistant", "system"],
       order_status: [
         "pending",
         "confirmed",
