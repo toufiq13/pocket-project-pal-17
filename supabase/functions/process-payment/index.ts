@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { paymentRateLimiter, getIdentifier, createRateLimitResponse } from '../_shared/rateLimit.ts';
+import { validatePaymentData, createErrorResponse } from '../_shared/security.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +12,14 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limiting
+  const identifier = getIdentifier(req);
+  const rateLimit = paymentRateLimiter.isAllowed(identifier);
+  if (!rateLimit.allowed) {
+    console.log('Rate limit exceeded for:', identifier);
+    return createRateLimitResponse(rateLimit.resetAt, corsHeaders);
   }
 
   try {
@@ -28,6 +38,11 @@ serve(async (req) => {
     console.log('Payment processing request:', { action, orderId, amount, paymentMethod });
 
     if (action === 'create') {
+      // Validate payment data
+      const validation = validatePaymentData({ orderId, amount, paymentMethod });
+      if (!validation.valid) {
+        return createErrorResponse(validation.errors.join(', '), 400, corsHeaders);
+      }
       // Create payment record
       const { data: payment, error: paymentError } = await supabaseClient
         .from('payments')

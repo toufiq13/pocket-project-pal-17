@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatbotRateLimiter, getIdentifier, createRateLimitResponse } from '../_shared/rateLimit.ts';
+import { sanitizeInput, createErrorResponse } from '../_shared/security.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +14,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limiting
+  const identifier = getIdentifier(req);
+  const rateLimit = chatbotRateLimiter.isAllowed(identifier);
+  if (!rateLimit.allowed) {
+    console.log('Rate limit exceeded for:', identifier);
+    return createRateLimitResponse(rateLimit.resetAt, corsHeaders);
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -19,6 +29,20 @@ serve(async (req) => {
     }
 
     const { message, conversationHistory, userId } = await req.json();
+
+    // Input validation
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return createErrorResponse('Invalid message', 400, corsHeaders);
+    }
+    if (message.length > 5000) {
+      return createErrorResponse('Message too long (max 5000 characters)', 400, corsHeaders);
+    }
+    if (!userId || typeof userId !== 'string') {
+      return createErrorResponse('Invalid user ID', 400, corsHeaders);
+    }
+
+    // Sanitize input
+    const sanitizedMessage = sanitizeInput(message);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -101,7 +125,7 @@ Guidelines:
     const messages = [
       { role: "system", content: systemPrompt },
       ...conversationHistory.slice(-10),
-      { role: "user", content: message },
+      { role: "user", content: sanitizedMessage },
     ];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
